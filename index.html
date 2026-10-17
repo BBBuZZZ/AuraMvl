@@ -37,17 +37,17 @@
       </div>
     </div>
 
-    <!-- Header Principal -->
+    <!-- Header Principal (Toca para cambiar nombre y curso) -->
     <header class="app-header">
-      <div class="header-user">
+      <div class="header-user" id="btn-open-profile" style="cursor:pointer;" title="Toca para cambiar tu nombre y curso escolar">
         <div class="user-avatar">🌊</div>
         <div>
-          <div class="greeting-sub">CURSO ACTUAL • 12 AÑOS</div>
-          <div class="greeting-title">¡Hola, Campeona! ✨</div>
+          <div class="greeting-sub" id="header-user-grade">1º ESO • CURSO 2026/2027</div>
+          <div class="greeting-title" id="header-user-name">¡Hola, Campeona! ✨</div>
         </div>
       </div>
-      <button class="header-action-btn" id="btn-lock-privacy" title="Privacidad protegida">
-        🔒
+      <button class="header-action-btn" id="btn-header-profile" title="Ajustes de Perfil y Código Parental">
+        ⚙️
       </button>
     </header>
 
@@ -59,7 +59,7 @@
            ==================================================================== -->
       <section id="schedule-view" class="view-section active">
         
-        <!-- Carrusel de Días -->
+        <!-- Carrusel de Días Sincronizado con Fecha Real -->
         <div class="days-carousel" id="days-carousel">
           <!-- Generado dinámicamente por JS -->
         </div>
@@ -68,8 +68,8 @@
         <div class="summary-banner">
           <div class="banner-icon">📖</div>
           <div>
-            <div class="banner-title">Horario Oficial Actualizado</div>
-            <div class="banner-desc">Horario del curso sincronizado. Puedes editarlo si cambias de curso escolar.</div>
+            <div class="banner-title" id="header-current-date">CARGANDO FECHA...</div>
+            <div class="banner-desc">Horario y agenda sincronizados. Puedes modificar materias y tareas para cualquier curso.</div>
           </div>
         </div>
 
@@ -84,16 +84,29 @@
           </div>
         </div>
         <div class="classes-list" id="classes-list">
-          <!-- Generado por JS -->
+          <!-- Generado por JS en orden cronológico -->
         </div>
 
-        <!-- Deberes y Tareas -->
+        <!-- Deberes para el Día Seleccionado -->
         <div class="section-title-row">
-          <span class="section-title">✅ Deberes para este día</span>
+          <span class="section-title">✅ Deberes de este día</span>
           <button class="btn-small-add" id="btn-open-add-task">+ Añadir</button>
         </div>
         <div class="tasks-list" id="tasks-list">
           <!-- Generado por JS -->
+        </div>
+
+        <!-- Sección de Próximas Entregas a Semanas o Meses Vista -->
+        <div style="margin-top: 15px; margin-bottom: 25px;">
+          <div class="section-title-row">
+            <span class="section-title" style="font-size:14px;">📅 Próximas Entregas y Exámenes</span>
+            <span id="upcoming-tasks-count" style="font-size:11px; font-weight:800; color:var(--primary-turquoise); background:var(--soft-aqua); padding:2px 8px; border-radius:10px;">
+              0 pendientes
+            </span>
+          </div>
+          <div id="upcoming-tasks-list">
+            <!-- Tareas futuras generadas dinámicamente por JS -->
+          </div>
         </div>
 
       </section>
@@ -154,67 +167,104 @@
       </section>
 
       <!-- ====================================================================
-           PESTAÑA 3: DIARIO DE ÁNIMO (MOOD TRACKER)
+           PESTAÑA 3: DIARIO DE ÁNIMO CON ACCESO PARENTAL DE EMERGENCIA
            ==================================================================== -->
       <section id="diary-view" class="view-section">
         
-        <!-- Banner Seguro -->
-        <div class="summary-banner" style="background: linear-gradient(135deg, #CCFBF1 0%, #E0F2FE 100%);">
-          <div class="banner-icon">🫧</div>
-          <div>
-            <div class="banner-title">Cápsula Privada y Segura</div>
-            <div class="banner-desc">Escribe lo que sientes. Tus pensamientos están protegidos solo en este móvil.</div>
+        <!-- Estado 1: Pantalla de Bloqueo por PIN -->
+        <div id="diary-locked-view" class="pin-locked-state" style="display:none;">
+          <div class="pin-lock-icon">🔒</div>
+          <div class="pin-lock-title">Diario Protegido y Privado</div>
+          <div class="pin-lock-desc">
+            Introduce tu PIN personal o el Código de Emergencia Parental para abrirlo.
+          </div>
+          
+          <div style="max-width: 240px; margin: 0 auto 16px;">
+            <input type="password" id="diary-unlock-input" class="modal-input" maxlength="8" placeholder="Escribe el PIN..." style="text-align:center; font-size:20px; letter-spacing:4px;">
+          </div>
+          
+          <button class="btn-primary-action" id="btn-submit-diary-unlock" style="max-width: 240px; margin: 0 auto;">
+            <span>Desbloquear Diario</span>
+          </button>
+
+          <div id="diary-unlock-error" style="color: #E11D48; font-size: 12px; font-weight: 700; margin-top: 12px; display: none;">
+            ⚠️ PIN incorrecto. Vuelve a intentarlo.
           </div>
         </div>
 
-        <!-- Selector de Emociones -->
-        <div class="section-title-row">
-          <span class="section-title">🌊 Mi energía de hoy</span>
-        </div>
+        <!-- Estado 2: Contenido Desbloqueado -->
+        <div id="diary-unlocked-content" style="display:none;">
 
-        <div class="mood-carousel">
-          <div class="mood-card active" data-emoji="✨" data-label="Increíble">
-            <span class="mood-emoji">✨</span>
-            <span class="mood-name">Increíble</span>
+          <!-- Aviso si se abrió en modo Parental -->
+          <div id="diary-parent-emergency-banner" style="display:none; background:#FEF3C7; border:1px solid #F59E0B; border-radius:14px; padding:10px 14px; margin-bottom:14px; align-items:center; gap:8px;">
+            <span style="font-size:18px;">🛡️</span>
+            <div style="font-size:12px; font-weight:700; color:#92400E;">
+              Modo Emergencia Parental activo (Abierto con código maestro)
+            </div>
           </div>
-          <div class="mood-card" data-emoji="🌊" data-label="Genial">
-            <span class="mood-emoji">🌊</span>
-            <span class="mood-name">Genial</span>
-          </div>
-          <div class="mood-card" data-emoji="☁️" data-label="Tranqui">
-            <span class="mood-emoji">☁️</span>
-            <span class="mood-name">Tranqui</span>
-          </div>
-          <div class="mood-card" data-emoji="🌧️" data-label="Cansada">
-            <span class="mood-emoji">🌧️</span>
-            <span class="mood-name">Cansada</span>
-          </div>
-          <div class="mood-card" data-emoji="⛈️" data-label="Mal día">
-            <span class="mood-emoji">⛈️</span>
-            <span class="mood-name">Mal día</span>
-          </div>
-        </div>
 
-        <!-- Cuadro de Reflexión -->
-        <div class="section-title-row">
-          <span class="section-title">📝 Lo mejor de mi jornada</span>
-        </div>
+          <!-- Banner Diario -->
+          <div class="summary-banner" style="background: linear-gradient(135deg, #CCFBF1 0%, #E0F2FE 100%);">
+            <div class="banner-icon">🫧</div>
+            <div style="flex:1;">
+              <div class="banner-title">Tu Rincón Seguro y Secreto</div>
+              <div class="banner-desc">Escribe lo que sientes. Tus recuerdos están protegidos en este móvil.</div>
+            </div>
+            <button id="btn-relock-diary" style="background:white; border:none; padding:6px 10px; border-radius:10px; font-size:11px; font-weight:800; color:var(--text-muted); cursor:pointer;">
+              🔒 Bloquear
+            </button>
+          </div>
 
-        <div class="journal-card">
-          <textarea class="journal-textarea" id="journal-input" maxlength="250" placeholder="Cuéntale a tu yo del futuro qué fue lo más guay, interesante o gracioso que pasó hoy en el cole o con tus amigas..."></textarea>
-          <div class="char-counter" id="journal-char-count">0 / 250</div>
-        </div>
+          <!-- Selector de Emociones -->
+          <div class="section-title-row">
+            <span class="section-title">🌊 Mi energía de hoy</span>
+          </div>
 
-        <button class="btn-primary-action" id="btn-save-diary" style="margin-bottom: 25px;">
-          <span>🔒 Guardar en la Cápsula del Tiempo</span>
-        </button>
+          <div class="mood-carousel">
+            <div class="mood-card active" data-emoji="✨" data-label="Increíble">
+              <span class="mood-emoji">✨</span>
+              <span class="mood-name">Increíble</span>
+            </div>
+            <div class="mood-card" data-emoji="🌊" data-label="Genial">
+              <span class="mood-emoji">🌊</span>
+              <span class="mood-name">Genial</span>
+            </div>
+            <div class="mood-card" data-emoji="☁️" data-label="Tranqui">
+              <span class="mood-emoji">☁️</span>
+              <span class="mood-name">Tranqui</span>
+            </div>
+            <div class="mood-card" data-emoji="🌧️" data-label="Cansada">
+              <span class="mood-emoji">🌧️</span>
+              <span class="mood-name">Cansada</span>
+            </div>
+            <div class="mood-card" data-emoji="⛈️" data-label="Mal día">
+              <span class="mood-emoji">⛈️</span>
+              <span class="mood-name">Mal día</span>
+            </div>
+          </div>
 
-        <!-- Historial / Cápsula del tiempo -->
-        <div class="section-title-row">
-          <span class="section-title">⏳ Mis Recuerdos Guardados</span>
-        </div>
-        <div class="history-timeline" id="history-timeline">
-          <!-- Generado dinámicamente por JS -->
+          <!-- Cuadro de Reflexión -->
+          <div class="section-title-row">
+            <span class="section-title">📝 Lo mejor de mi jornada</span>
+          </div>
+
+          <div class="journal-card">
+            <textarea class="journal-textarea" id="journal-input" maxlength="250" placeholder="Cuéntale a tu yo del futuro qué fue lo más guay, interesante o gracioso que pasó hoy en el cole o con tus amigas..."></textarea>
+            <div class="char-counter" id="journal-char-count">0 / 250</div>
+          </div>
+
+          <button class="btn-primary-action" id="btn-save-diary" style="margin-bottom: 25px;">
+            <span>🔒 Guardar en la Cápsula del Tiempo</span>
+          </button>
+
+          <!-- Historial / Cápsula del tiempo -->
+          <div class="section-title-row">
+            <span class="section-title">⏳ Mis Recuerdos Guardados</span>
+          </div>
+          <div class="history-timeline" id="history-timeline">
+            <!-- Generado dinámicamente por JS -->
+          </div>
+
         </div>
 
       </section>
@@ -237,26 +287,24 @@
       </button>
     </nav>
 
-    <!-- Modal 1: Añadir Tarea (Eligiendo el Día para el que se la mandan) -->
+    <!-- Modal 1: Añadir Tarea (Cualquier Fecha Futura: Semanas o Meses Vista) -->
     <div class="modal-overlay" id="add-task-modal">
       <div class="modal-sheet">
         <div class="modal-header">
-          <span class="modal-title">Añadir Deberes ✏️</span>
+          <span class="modal-title">Añadir Deberes o Examen ✏️</span>
           <button class="btn-close-modal" id="btn-close-modal">✕</button>
         </div>
         
         <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; display:block;">
-          ¿Para qué día son los deberes?
+          📅 Fecha de entrega o examen (puedes elegir cualquier día o mes):
         </label>
-        <select id="task-input-day" class="modal-input" style="font-weight:700; color:var(--primary-turquoise);">
-          <!-- Opciones Lunes a Domingo por JS -->
-        </select>
+        <input type="date" id="task-input-date" class="modal-input" style="font-weight:700; color:var(--primary-turquoise);">
 
-        <input type="text" id="task-input-text" class="modal-input" placeholder="¿Qué tienes que hacer? (ej. Ejercicios pág 34)">
+        <input type="text" id="task-input-text" class="modal-input" placeholder="¿Qué tienes que hacer? (ej. Ejercicios pág 34, Examen tema 2...)">
         <input type="text" id="task-input-subject" class="modal-input" placeholder="Asignatura (ej. Matemáticas, Lengua, Inglés...)">
 
         <button class="btn-primary-action" id="btn-confirm-add-task">
-          <span>Guardar Tarea</span>
+          <span>Guardar en mi Agenda</span>
         </button>
       </div>
     </div>
@@ -265,7 +313,7 @@
     <div class="modal-overlay" id="edit-schedule-modal">
       <div class="modal-sheet" style="max-height:85vh; overflow-y:auto;">
         <div class="modal-header">
-          <span class="modal-title">⚙️ Modificar Horario de Curso</span>
+          <span class="modal-title">⚙️ Modificar Horario Escolar</span>
           <button class="btn-close-modal" id="btn-close-edit-schedule">✕</button>
         </div>
 
@@ -276,8 +324,7 @@
           <!-- Generado por JS -->
         </select>
 
-        <!-- Lista de Clases Existentes en ese día -->
-        <div style="font-size:13px; font-weight:800; margin: 10px 0 6px;">Clases programadas:</div>
+        <div style="font-size:13px; font-weight:800; margin: 10px 0 6px;">Clases programadas (ordenadas por hora):</div>
         <div id="schedule-editor-classes-list" style="margin-bottom: 16px;">
           <!-- Listado editable generado por JS -->
         </div>
@@ -300,13 +347,63 @@
             </label>
           </div>
           <button class="btn-primary-action" id="btn-add-class-to-schedule" style="height:44px;">
-            <span>Añadir Asignatura al Horario</span>
+            <span>Añadir y Ordenar por Hora</span>
           </button>
         </div>
 
-        <!-- Botón para restablecer al horario del cuaderno -->
         <button id="btn-reset-official-schedule" style="width:100%; background:transparent; border:1px solid #CBD5E1; color:var(--text-muted); font-size:12px; font-weight:700; padding:10px; border-radius:14px; cursor:pointer;">
           Restablecer al horario del cuaderno
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal 3: Perfil, Curso Adaptable y Código Maestro Parental -->
+    <div class="modal-overlay" id="profile-settings-modal">
+      <div class="modal-sheet" style="max-height:85vh; overflow-y:auto;">
+        <div class="modal-header">
+          <span class="modal-title">⚙️ Perfil y Ajustes de Seguridad</span>
+          <button class="btn-close-modal" id="btn-close-profile-modal">✕</button>
+        </div>
+
+        <div style="font-size:13px; font-weight:800; color:var(--text-main); margin-bottom:8px;">
+          👤 Datos de la Alumna / Alumno
+        </div>
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; display:block;">
+          Nombre o apodo:
+        </label>
+        <input type="text" id="profile-input-name" class="modal-input" placeholder="Ej: Sofía, Lucía, Campeona...">
+
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; display:block;">
+          Curso escolar (adaptable a cualquier nivel o año):
+        </label>
+        <input type="text" id="profile-input-grade" class="modal-input" placeholder="Ej: 1º ESO, 2º ESO, 6º Primaria, 4º ESO...">
+
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; display:block;">
+          Subtítulo o año escolar:
+        </label>
+        <input type="text" id="profile-input-subtitle" class="modal-input" placeholder="Ej: CURSO 2026/2027">
+
+        <hr style="border:none; border-top:1px solid #E2E8F0; margin:16px 0;">
+
+        <div style="font-size:13px; font-weight:800; color:var(--primary-turquoise); margin-bottom:4px;">
+          🛡️ Códigos de Seguridad del Diario
+        </div>
+        <p style="font-size:12px; color:var(--text-muted); line-height:1.4; margin-bottom:10px;">
+          Tu hija tiene su propio PIN para su intimidad, y tú dispones de un <b>Código Maestro de Emergencia</b> para abrirlo en cualquier momento si es necesario.
+        </p>
+
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; display:block;">
+          PIN Personal de la Alumna (por defecto: 1234):
+        </label>
+        <input type="text" id="profile-input-daughter-pin" class="modal-input" placeholder="PIN personal (ej. 1234)">
+
+        <label style="font-size:12px; font-weight:700; color:#B45309; margin-bottom:4px; display:block;">
+          🔑 Código Maestro de Emergencia para Padres (por defecto: 9999):
+        </label>
+        <input type="text" id="profile-input-parent-pin" class="modal-input" style="border-color:#FCD34D; background:#FFFBEB; font-weight:700;" placeholder="Código maestro padre (ej. 9999)">
+
+        <button class="btn-primary-action" id="btn-save-profile" style="margin-top:8px;">
+          <span>Guardar Cambios</span>
         </button>
       </div>
     </div>
@@ -315,21 +412,11 @@
 
   <script src="app.js"></script>
   <script>
-    // Registro del Service Worker para funcionamiento Offline y PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
       });
     }
-
-    function updateClock() {
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      document.getElementById('current-clock').textContent = `${hours}:${minutes}`;
-    }
-    updateClock();
-    setInterval(updateClock, 1000);
   </script>
 </body>
 </html>

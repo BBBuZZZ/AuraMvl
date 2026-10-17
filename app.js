@@ -1,5 +1,6 @@
 // ==========================================================================
 // AURA APP - LÓGICA DE LA APLICACIÓN (MÓVIL & OFFLINE)
+// Adaptable a cualquier curso, fechas libres para deberes y código parental
 // ==========================================================================
 
 // Confetti festivo al tachar tareas o guardar recuerdos
@@ -67,7 +68,7 @@ const DAY_SHORT = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 // UTILIDADES DE TIEMPO Y ORDENACIÓN CRONOLÓGICA
 // ==========================================================================
 
-// Extrae los minutos desde las 00:00 para ordenar horas (ej: "08:15", "10 a 11", "9:00 - 10:00")
+// Extrae minutos desde las 00:00 para ordenar horas (ej: "08:15", "10 a 11", "9:00 - 10:00")
 function parseStartTime(timeStr) {
   if (!timeStr) return 9999;
   const match = timeStr.match(/(\d{1,2})(?::(\d{2}))?/);
@@ -83,11 +84,42 @@ function sortClassesChronologically(classList) {
   return [...classList].sort((a, b) => parseStartTime(a.time) - parseStartTime(b.time));
 }
 
+// Formato YYYY-MM-DD local
+function toLocalDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// Formatea etiquetas de cuenta atrás para tareas futuras (semanas, meses vista)
+function formatDueDateBadge(dueDateStr) {
+  if (!dueDateStr) return 'Sin fecha';
+  const parts = dueDateStr.split('-');
+  if (parts.length < 3) return dueDateStr;
+  const target = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+
+  const options = { day: 'numeric', month: 'short' };
+  const dateFormatted = target.toLocaleDateString('es-ES', options);
+
+  let countdown = '';
+  if (diffDays < 0) countdown = '¡Atrasada!';
+  else if (diffDays === 0) countdown = '¡Hoy!';
+  else if (diffDays === 1) countdown = 'Mañana';
+  else if (diffDays < 7) countdown = `En ${diffDays} días`;
+  else if (diffDays < 31) countdown = `En ${Math.round(diffDays / 7)} sem.`;
+  else countdown = `En ${Math.round(diffDays / 30)} mes(es)`;
+
+  return `${dateFormatted} • ${countdown}`;
+}
+
 // Calcula las fechas exactas de la semana actual sincronizadas con el dispositivo
 function getWeekDates() {
   const now = new Date();
   const currentDayOfWeek = now.getDay(); // 0 = Domingo, 1 = Lunes ... 6 = Sábado
-  // En España la semana empieza el Lunes (offset para encontrar el lunes de esta semana)
   const mondayOffset = (currentDayOfWeek === 0) ? -6 : 1 - currentDayOfWeek;
   const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset);
 
@@ -99,6 +131,7 @@ function getWeekDates() {
       name: DAY_SHORT[i],
       fullName: DAY_NAMES[i],
       dateNumber: d.getDate(),
+      dateStr: toLocalDateStr(d),
       isToday: d.toDateString() === now.toDateString(),
       fullDate: d
     });
@@ -107,7 +140,7 @@ function getWeekDates() {
 }
 
 // ==========================================================================
-// HORARIO ESCOLAR REAL (Extraído del cuaderno con corrección ortográfica)
+// HORARIO ESCOLAR BASE (Extraído del cuaderno y editable para cualquier curso)
 // ==========================================================================
 const OFFICIAL_SCHEDULE = {
   0: [ // LUNES
@@ -156,17 +189,22 @@ const OFFICIAL_SCHEDULE = {
   6: []  // DOMINGO
 };
 
-const DEFAULT_TASKS = [
-  { id: 1, targetDay: 0, text: 'Ejercicios de Inglés pág 22', subject: 'Inglés', completed: false },
-  { id: 2, targetDay: 1, text: 'Traer flauta dulce para Música', subject: 'Música', completed: false },
-  { id: 3, targetDay: 2, text: 'Preparar zapatillas y chándal para E.F.', subject: 'Educación Física', completed: true },
-  { id: 4, targetDay: 4, text: 'Llevar bloc de dibujo y lápiz 2B para EPVA', subject: 'EPVA (Plástica)', completed: false }
-];
+const DEFAULT_PROFILE = {
+  name: 'Campeona',
+  grade: '1º ESO',
+  subtitle: 'CURSO 2026/2027'
+};
+
+const DEFAULT_SECURITY = {
+  daughterPin: '1234',
+  parentPin: '9999', // Código maestro de emergencia para el padre
+  isLocked: true     // Inicia bloqueado para máxima privacidad
+};
 
 const DEFAULT_OUTFITS = [
   {
     id: 1,
-    date: 'Ayer',
+    date: 'Para Mañana',
     notes: 'Sudadera oversize turquesa + joggers claros y zapatillas blancas',
     accessories: ['👟 Zapatillas', '🎒 Mochila', '💍 Joyitas'],
     photo: null
@@ -179,12 +217,6 @@ const DEFAULT_DIARY = [
     date: '14 de Octubre',
     emoji: '✨',
     text: 'Aprobé el examen de Historia y nos reímos un montón en el recreo.'
-  },
-  {
-    id: 2,
-    date: '13 de Octubre',
-    emoji: '🌊',
-    text: 'Súper día de Educación Física. El conjunto deportivo estuvo súper cómodo.'
   }
 ];
 
@@ -196,24 +228,49 @@ class AuraAppState {
     this.currentView = 'schedule';
     this.selectedDay = this.getTodayIndex();
     
-    // Versión para forzar actualización con el nuevo horario oficial
+    // Versión del horario
     const savedVersion = localStorage.getItem('aura_schedule_version');
-    if (savedVersion !== '2.1') {
+    if (savedVersion !== '2.2') {
       localStorage.setItem('aura_schedule', JSON.stringify(OFFICIAL_SCHEDULE));
-      localStorage.setItem('aura_schedule_version', '2.1');
+      localStorage.setItem('aura_schedule_version', '2.2');
       this.schedule = OFFICIAL_SCHEDULE;
     } else {
       this.schedule = JSON.parse(localStorage.getItem('aura_schedule')) || OFFICIAL_SCHEDULE;
     }
 
-    // Asegurar que todas las clases guardadas estén ordenadas cronológicamente
+    // Ordenar clases de todos los días cronológicamente
     for (let d = 0; d < 7; d++) {
       if (this.schedule[d]) {
         this.schedule[d] = sortClassesChronologically(this.schedule[d]);
       }
     }
 
-    this.tasks = JSON.parse(localStorage.getItem('aura_tasks')) || DEFAULT_TASKS;
+    // Perfil y Datos Personales (Adaptable a cualquier curso/año)
+    this.profile = JSON.parse(localStorage.getItem('aura_user_profile')) || DEFAULT_PROFILE;
+
+    // Seguridad Parental y Personal
+    this.security = JSON.parse(localStorage.getItem('aura_security')) || DEFAULT_SECURITY;
+    this.diaryUnlocked = !this.security.isLocked;
+    this.isParentModeActive = false;
+
+    // Tareas con soporte de cualquier fecha futura
+    const savedTasks = JSON.parse(localStorage.getItem('aura_tasks'));
+    if (savedTasks && Array.isArray(savedTasks)) {
+      this.tasks = savedTasks;
+    } else {
+      const today = new Date();
+      const inThreeDays = new Date(today);
+      inThreeDays.setDate(today.getDate() + 3);
+      const inTwoWeeks = new Date(today);
+      inTwoWeeks.setDate(today.getDate() + 14);
+
+      this.tasks = [
+        { id: 1, dueDate: toLocalDateStr(today), text: 'Ejercicios de Inglés pág 22', subject: 'Inglés', completed: false },
+        { id: 2, dueDate: toLocalDateStr(inThreeDays), text: 'Traer flauta dulce para Música', subject: 'Música', completed: false },
+        { id: 3, dueDate: toLocalDateStr(inTwoWeeks), text: 'Entrega de Proyecto y Examen tema 2', subject: 'Biología y Geología', completed: false }
+      ];
+    }
+
     this.outfits = JSON.parse(localStorage.getItem('aura_outfits')) || DEFAULT_OUTFITS;
     this.diary = JSON.parse(localStorage.getItem('aura_diary')) || DEFAULT_DIARY;
     this.currentPhotoBase64 = null;
@@ -230,6 +287,8 @@ class AuraAppState {
     localStorage.setItem('aura_tasks', JSON.stringify(this.tasks));
     localStorage.setItem('aura_outfits', JSON.stringify(this.outfits));
     localStorage.setItem('aura_diary', JSON.stringify(this.diary));
+    localStorage.setItem('aura_user_profile', JSON.stringify(this.profile));
+    localStorage.setItem('aura_security', JSON.stringify(this.security));
   }
 }
 
@@ -240,6 +299,7 @@ const app = new AuraAppState();
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
   setupNavigation();
+  updateProfileUI();
   updateDeviceDateAndClock();
   setInterval(updateDeviceDateAndClock, 1000);
   setupDaysCarousel();
@@ -248,6 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupMoodDiary();
   setupTaskModal();
   setupScheduleEditorModal();
+  setupProfileModal();
   checkTomorrowSmartAlert();
 });
 
@@ -270,6 +331,14 @@ function updateDeviceDateAndClock() {
     const dateFormatted = now.toLocaleDateString('es-ES', options);
     headerDateEl.textContent = `${dateFormatted.toUpperCase()} ✨`;
   }
+}
+
+// Actualizar datos del perfil en pantalla
+function updateProfileUI() {
+  const nameEl = document.getElementById('header-user-name');
+  const gradeEl = document.getElementById('header-user-grade');
+  if (nameEl) nameEl.textContent = `¡Hola, ${app.profile.name || 'Campeona'}! ✨`;
+  if (gradeEl) gradeEl.textContent = `${app.profile.grade || '1º ESO'} • ${app.profile.subtitle || 'CURSO ACTUAL'}`;
 }
 
 // Navegación de Pestañas
@@ -296,7 +365,7 @@ function setupNavigation() {
         checkTomorrowSmartAlert();
         renderSavedOutfits();
       } else if (targetView === 'diary') {
-        renderDiaryTimeline();
+        renderDiaryView();
       }
     });
   });
@@ -328,10 +397,12 @@ function setupDaysCarousel() {
   });
 }
 
-// Renderizar Horario y Deberes (Siempre en Orden Cronológico)
+// Renderizar Horario y Deberes (Día actual + Agenda de tareas a semanas/meses vista)
 function renderScheduleAndTasks() {
   const classesList = document.getElementById('classes-list');
   const tasksList = document.getElementById('tasks-list');
+  const upcomingTasksList = document.getElementById('upcoming-tasks-list');
+  const upcomingCountEl = document.getElementById('upcoming-tasks-count');
   
   // Asegurar ordenación cronológica por hora de inicio
   if (app.schedule[app.selectedDay]) {
@@ -347,10 +418,7 @@ function renderScheduleAndTasks() {
     dayLabel.textContent = `${currentDayInfo.fullName} ${currentDayInfo.dateNumber}${currentDayInfo.isToday ? ' (Hoy)' : ''}`;
   }
 
-  // Filtrar tareas que son específicamente para el día seleccionado
-  const dayTasks = app.tasks.filter(t => t.targetDay === app.selectedDay);
-
-  // Render de Clases
+  // Clases
   if (dayClasses.length === 0) {
     classesList.innerHTML = `
       <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px; background: #fff; border-radius: 18px; border: 1px dashed var(--border-light);">
@@ -358,7 +426,7 @@ function renderScheduleAndTasks() {
       </div>
     `;
   } else {
-    classesList.innerHTML = dayClasses.map((c, idx) => `
+    classesList.innerHTML = dayClasses.map(c => `
       <div class="class-card ${c.type}">
         <div class="class-left">
           <span class="class-icon">${c.icon}</span>
@@ -374,11 +442,17 @@ function renderScheduleAndTasks() {
     `).join('');
   }
 
-  // Render de Tareas
+  // Tareas para la fecha seleccionada en el carrusel
+  const targetDateStr = currentDayInfo ? currentDayInfo.dateStr : '';
+  const dayTasks = app.tasks.filter(t => {
+    if (t.dueDate) return t.dueDate === targetDateStr;
+    return t.targetDay === app.selectedDay;
+  });
+
   if (dayTasks.length === 0) {
     tasksList.innerHTML = `
       <div style="text-align: center; padding: 18px; color: var(--text-muted); font-size: 13px; background: #fff; border-radius: 18px; border: 1px dashed var(--border-light);">
-        ✨ No tienes deberes pendientes para el <b>${DAY_NAMES[app.selectedDay]}</b>. ¡Bravo!
+        ✨ No tienes deberes pendientes para este día. ¡Bravo!
       </div>
     `;
   } else {
@@ -390,10 +464,10 @@ function renderScheduleAndTasks() {
           </div>
           <div>
             <div class="task-text">${t.text}</div>
-            <div style="display:flex; gap:6px; align-items:center; margin-top:2px;">
+            <div style="display:flex; gap:6px; align-items:center; margin-top:2px; flex-wrap:wrap;">
               <span class="task-badge">${t.subject}</span>
               <span style="font-size:10px; font-weight:700; color:var(--primary-turquoise); background:var(--soft-aqua); padding:2px 6px; border-radius:8px;">
-                Para el ${DAY_NAMES[t.targetDay]}
+                ${t.dueDate ? formatDueDateBadge(t.dueDate) : `Para el ${DAY_NAMES[t.targetDay]}`}
               </span>
             </div>
           </div>
@@ -401,6 +475,43 @@ function renderScheduleAndTasks() {
         <button class="btn-delete-task" onclick="deleteTask(${t.id})">✕</button>
       </div>
     `).join('');
+  }
+
+  // Todas las tareas pendientes futuras (semanas y meses vista)
+  const pendingFutureTasks = app.tasks
+    .filter(t => !t.completed)
+    .sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
+
+  if (upcomingCountEl) {
+    upcomingCountEl.textContent = `${pendingFutureTasks.length} pendiente(s)`;
+  }
+
+  if (upcomingTasksList) {
+    if (pendingFutureTasks.length === 0) {
+      upcomingTasksList.innerHTML = `
+        <div style="padding:12px; font-size:12px; color:var(--text-muted); text-align:center;">
+          🎉 No hay entregas ni exámenes pendientes registrados.
+        </div>
+      `;
+    } else {
+      upcomingTasksList.innerHTML = pendingFutureTasks.map(t => `
+        <div class="task-item" style="margin-bottom:8px; padding:10px 14px;" data-id="${t.id}">
+          <div class="task-left">
+            <div class="custom-checkbox" onclick="toggleTask(${t.id})"></div>
+            <div>
+              <div class="task-text" style="font-size:12.5px;">${t.text}</div>
+              <div style="display:flex; gap:6px; align-items:center; margin-top:3px; flex-wrap:wrap;">
+                <span class="task-badge">${t.subject}</span>
+                <span style="font-size:10px; font-weight:800; color:#0369A1; background:#E0F2FE; padding:2px 6px; border-radius:6px;">
+                  📅 ${formatDueDateBadge(t.dueDate)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <button class="btn-delete-task" onclick="deleteTask(${t.id})">✕</button>
+        </div>
+      `).join('');
+    }
   }
 }
 
@@ -559,7 +670,7 @@ function renderSavedOutfits() {
 }
 
 // ==========================================================================
-// FUNCIÓN 3: DIARIO DE ÁNIMO (MOOD CAPSULE)
+// FUNCIÓN 3: DIARIO DE ÁNIMO CON CÓDIGO MAESTRO PARENTAL DE EMERGENCIA
 // ==========================================================================
 function setupMoodDiary() {
   const moodCards = document.querySelectorAll('.mood-card');
@@ -576,45 +687,109 @@ function setupMoodDiary() {
 
   const journalInput = document.getElementById('journal-input');
   const charCounter = document.getElementById('journal-char-count');
-  journalInput.addEventListener('input', () => {
-    charCounter.textContent = `${journalInput.value.length} / 250`;
-  });
+  if (journalInput && charCounter) {
+    journalInput.addEventListener('input', () => {
+      charCounter.textContent = `${journalInput.value.length} / 250`;
+    });
+  }
 
-  document.getElementById('btn-save-diary').addEventListener('click', () => {
-    const text = journalInput.value.trim();
-    if (!text) {
-      alert('¡Escribe al menos una frase sobre cómo ha ido tu día! ✍️💙');
-      return;
+  // Guardar entrada
+  const btnSave = document.getElementById('btn-save-diary');
+  if (btnSave) {
+    btnSave.addEventListener('click', () => {
+      const text = journalInput.value.trim();
+      if (!text) {
+        alert('¡Escribe al menos una frase sobre cómo ha ido tu día! ✍️💙');
+        return;
+      }
+
+      const todayDate = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+      const newEntry = {
+        id: Date.now(),
+        date: todayDate,
+        emoji: app.selectedMood.emoji,
+        text: text
+      };
+
+      app.diary.unshift(newEntry);
+      app.save();
+      launchConfetti();
+      alert('¡Cápsula del día guardada bajo llave! 🔒🌊');
+
+      journalInput.value = '';
+      charCounter.textContent = '0 / 250';
+      renderDiaryTimeline();
+    });
+  }
+
+  // Botón para bloquear manualmente
+  const btnLock = document.getElementById('btn-relock-diary');
+  if (btnLock) {
+    btnLock.addEventListener('click', () => {
+      app.diaryUnlocked = false;
+      app.isParentModeActive = false;
+      renderDiaryView();
+    });
+  }
+
+  // Desbloqueo (Hija o Código de Emergencia Parental)
+  const btnUnlock = document.getElementById('btn-submit-diary-unlock');
+  const pinInput = document.getElementById('diary-unlock-input');
+  const errorMsg = document.getElementById('diary-unlock-error');
+
+  if (btnUnlock && pinInput) {
+    btnUnlock.addEventListener('click', () => {
+      const enteredPin = pinInput.value.trim();
+      const daughterPin = app.security.daughterPin || '1234';
+      const parentPin = app.security.parentPin || '9999';
+
+      if (enteredPin === parentPin) {
+        // Desbloqueo Parental de Emergencia
+        app.diaryUnlocked = true;
+        app.isParentModeActive = true;
+        pinInput.value = '';
+        if (errorMsg) errorMsg.style.display = 'none';
+        renderDiaryView();
+        alert('🛡️ Acceso de Emergencia Parental activado.');
+      } else if (enteredPin === daughterPin) {
+        // Desbloqueo Alumna
+        app.diaryUnlocked = true;
+        app.isParentModeActive = false;
+        pinInput.value = '';
+        if (errorMsg) errorMsg.style.display = 'none';
+        renderDiaryView();
+      } else {
+        if (errorMsg) errorMsg.style.display = 'block';
+      }
+    });
+
+    pinInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') btnUnlock.click();
+    });
+  }
+}
+
+function renderDiaryView() {
+  const lockedView = document.getElementById('diary-locked-view');
+  const unlockedView = document.getElementById('diary-unlocked-content');
+  const parentBanner = document.getElementById('diary-parent-emergency-banner');
+
+  if (!app.diaryUnlocked) {
+    if (lockedView) lockedView.style.display = 'block';
+    if (unlockedView) unlockedView.style.display = 'none';
+  } else {
+    if (lockedView) lockedView.style.display = 'none';
+    if (unlockedView) unlockedView.style.display = 'block';
+    if (parentBanner) {
+      parentBanner.style.display = app.isParentModeActive ? 'flex' : 'none';
     }
-
-    const todayDate = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
-    const newEntry = {
-      id: Date.now(),
-      date: todayDate,
-      emoji: app.selectedMood.emoji,
-      text: text
-    };
-
-    app.diary.unshift(newEntry);
-    app.save();
-    launchConfetti();
-    alert('¡Cápsula del día guardada bajo llave! 🔒🌊');
-
-    journalInput.value = '';
-    charCounter.textContent = '0 / 250';
     renderDiaryTimeline();
-  });
-
-  document.getElementById('btn-lock-privacy').addEventListener('click', () => {
-    const pin = prompt('🔒 Tu diario es privado. Escribe tu PIN secreto para bloquear/desbloquear:');
-    if (pin) {
-      alert('¡Ajustes de privacidad confirmados! Tu diario está protegido.');
-    }
-  });
+  }
 }
 
 function renderDiaryTimeline() {
   const container = document.getElementById('history-timeline');
+  if (!container) return;
   if (app.diary.length === 0) {
     container.innerHTML = '<p style="color:var(--text-muted); font-size:12px;">Aún no tienes recuerdos grabados en tu cápsula.</p>';
     return;
@@ -632,22 +807,22 @@ function renderDiaryTimeline() {
 }
 
 // ==========================================================================
-// MODAL DE AÑADIR TAREAS (CON ELECCIÓN DE DÍA OBJETIVO)
+// MODAL DE AÑADIR TAREAS (FECHA LIBRE - SEMANAS O MESES VISTA)
 // ==========================================================================
 function setupTaskModal() {
   const modal = document.getElementById('add-task-modal');
   const btnOpen = document.getElementById('btn-open-add-task');
   const btnClose = document.getElementById('btn-close-modal');
   const btnSave = document.getElementById('btn-confirm-add-task');
-  const daySelect = document.getElementById('task-input-day');
+  const dateInput = document.getElementById('task-input-date');
 
   btnOpen.addEventListener('click', () => {
+    // Por defecto sugerir la fecha seleccionada en el carrusel
     const weekDates = getWeekDates();
-    daySelect.innerHTML = weekDates.map((d) => `
-      <option value="${d.dayIndex}" ${d.dayIndex === app.selectedDay ? 'selected' : ''}>
-        Para el ${d.fullName} ${d.dateNumber}${d.isToday ? ' (Hoy)' : ''}
-      </option>
-    `).join('');
+    const currentDay = weekDates[app.selectedDay];
+    if (dateInput) {
+      dateInput.value = currentDay ? currentDay.dateStr : toLocalDateStr(new Date());
+    }
     modal.classList.add('open');
   });
 
@@ -656,7 +831,7 @@ function setupTaskModal() {
   btnSave.addEventListener('click', () => {
     const textInput = document.getElementById('task-input-text');
     const subjInput = document.getElementById('task-input-subject');
-    const targetDay = parseInt(daySelect.value, 10);
+    const chosenDate = dateInput ? dateInput.value : toLocalDateStr(new Date());
 
     if (!textInput.value.trim()) {
       alert('Por favor escribe qué deberes tienes.');
@@ -665,7 +840,7 @@ function setupTaskModal() {
 
     app.tasks.push({
       id: Date.now(),
-      targetDay: isNaN(targetDay) ? app.selectedDay : targetDay,
+      dueDate: chosenDate,
       text: textInput.value.trim(),
       subject: subjInput.value.trim() || 'General',
       completed: false
@@ -676,6 +851,7 @@ function setupTaskModal() {
     textInput.value = '';
     subjInput.value = '';
     modal.classList.remove('open');
+    alert('¡Tarea guardada con éxito en tu agenda! 📅');
   });
 }
 
@@ -691,10 +867,9 @@ function setupScheduleEditorModal() {
   const btnAddClass = document.getElementById('btn-add-class-to-schedule');
   const btnReset = document.getElementById('btn-reset-official-schedule');
 
-  // Abrir modal
   btnOpen.addEventListener('click', () => {
     const weekDates = getWeekDates();
-    dayFilter.innerHTML = weekDates.map((d) => `
+    dayFilter.innerHTML = weekDates.map(d => `
       <option value="${d.dayIndex}" ${d.dayIndex === app.selectedDay ? 'selected' : ''}>
         ${d.fullName} (${d.name} ${d.dateNumber})
       </option>
@@ -715,7 +890,6 @@ function setupScheduleEditorModal() {
 
   function renderEditorClassesList() {
     const day = parseInt(dayFilter.value, 10);
-    // Ordenar cronológicamente antes de pintar la lista
     if (app.schedule[day]) {
       app.schedule[day] = sortClassesChronologically(app.schedule[day]);
     }
@@ -777,7 +951,7 @@ function setupScheduleEditorModal() {
       type: isSport ? 'sports' : 'normal'
     });
 
-    // ¡ORDENACIÓN CRONOLÓGICA AUTOMÁTICA!
+    // Ordenación cronológica inmediata
     app.schedule[day] = sortClassesChronologically(app.schedule[day]);
 
     app.save();
@@ -788,7 +962,7 @@ function setupScheduleEditorModal() {
     alert('¡Clase añadida y ordenada automáticamente por hora! 🕒✨');
   });
 
-  // Restaurar horario oficial del cuaderno
+  // Restaurar horario oficial
   btnReset.addEventListener('click', () => {
     if (confirm('¿Quieres restablecer el horario al del cuaderno escolar?')) {
       app.schedule = JSON.parse(JSON.stringify(OFFICIAL_SCHEDULE));
@@ -803,4 +977,54 @@ function setupScheduleEditorModal() {
       alert('Horario restablecido y ordenado por hora.');
     }
   });
+}
+
+// ==========================================================================
+// MODAL DE PERFIL, CURSO Y CÓDIGO MAESTRO PARENTAL
+// ==========================================================================
+function setupProfileModal() {
+  const modal = document.getElementById('profile-settings-modal');
+  const btnOpenHeader = document.getElementById('btn-header-profile');
+  const btnOpenUser = document.getElementById('btn-open-profile');
+  const btnClose = document.getElementById('btn-close-profile-modal');
+  const btnSave = document.getElementById('btn-save-profile');
+
+  const inputName = document.getElementById('profile-input-name');
+  const inputGrade = document.getElementById('profile-input-grade');
+  const inputSubtitle = document.getElementById('profile-input-subtitle');
+  const inputDaughterPin = document.getElementById('profile-input-daughter-pin');
+  const inputParentPin = document.getElementById('profile-input-parent-pin');
+
+  function openProfile() {
+    inputName.value = app.profile.name || 'Campeona';
+    inputGrade.value = app.profile.grade || '1º ESO';
+    inputSubtitle.value = app.profile.subtitle || 'CURSO 2026/2027';
+    inputDaughterPin.value = app.security.daughterPin || '1234';
+    inputParentPin.value = app.security.parentPin || '9999';
+    modal.classList.add('open');
+  }
+
+  if (btnOpenHeader) btnOpenHeader.addEventListener('click', openProfile);
+  if (btnOpenUser) btnOpenUser.addEventListener('click', openProfile);
+  if (btnClose) btnClose.addEventListener('click', () => modal.classList.remove('open'));
+
+  if (btnSave) {
+    btnSave.addEventListener('click', () => {
+      app.profile.name = inputName.value.trim() || 'Campeona';
+      app.profile.grade = inputGrade.value.trim() || '1º ESO';
+      app.profile.subtitle = inputSubtitle.value.trim() || 'CURSO ACTUAL';
+
+      if (inputDaughterPin.value.trim()) {
+        app.security.daughterPin = inputDaughterPin.value.trim();
+      }
+      if (inputParentPin.value.trim()) {
+        app.security.parentPin = inputParentPin.value.trim();
+      }
+
+      app.save();
+      updateProfileUI();
+      modal.classList.remove('open');
+      alert('¡Perfil, curso y códigos de seguridad actualizados con éxito! ✨');
+    });
+  }
 }
