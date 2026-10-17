@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Aura - Mi Espacio Diario</title>
+  
+  <!-- Configuración PWA y Móvil para GitHub Pages -->
+  <meta name="theme-color" content="#0D9488">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Aura">
+  
+  <!-- Tipografía Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Contenedor con marco móvil para simulación o pantalla completa en smartphone -->
+  <div class="device-wrapper">
+
+    <!-- Barra de Estado Simulada -->
+    <div class="status-bar">
+      <span id="current-clock">08:15</span>
+      <div class="icons">
+        <span>📶</span>
+        <span>⚡</span>
+        <span>🔋</span>
+      </div>
+    </div>
+
+    <!-- Header Principal -->
+    <header class="app-header">
+      <div class="header-user">
+        <div class="user-avatar">🌊</div>
+        <div>
+          <div class="greeting-sub">CURSO ACTUAL • 12 AÑOS</div>
+          <div class="greeting-title">¡Hola, Campeona! ✨</div>
+        </div>
+      </div>
+      <button class="header-action-btn" id="btn-lock-privacy" title="Privacidad protegida">
+        🔒
+      </button>
+    </header>
+
+    <!-- Contenido Scrollable -->
+    <main class="app-content">
+
+      <!-- ====================================================================
+           PESTAÑA 1: HORARIO & TAREAS
+           ==================================================================== -->
+      <section id="schedule-view" class="view-section active">
+        
+        <!-- Carrusel de Días -->
+        <div class="days-carousel" id="days-carousel">
+          <!-- Generado dinámicamente por JS -->
+        </div>
+
+        <!-- Banner de Horario Sincronizado -->
+        <div class="summary-banner">
+          <div class="banner-icon">📖</div>
+          <div>
+            <div class="banner-title">Horario Oficial Actualizado</div>
+            <div class="banner-desc">Horario del curso sincronizado. Puedes editarlo si cambias de curso escolar.</div>
+          </div>
+        </div>
+
+        <!-- Clases del Día con botón para Modificar -->
+        <div class="section-title-row">
+          <span class="section-title">📚 Horario de Clases</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span id="schedule-day-label" style="font-size:12px; color:var(--text-muted); font-weight:700;">Hoy</span>
+            <button class="btn-small-add" id="btn-open-edit-schedule" style="background:#E0F2FE; color:#0284C7;">
+              ✏️ Modificar
+            </button>
+          </div>
+        </div>
+        <div class="classes-list" id="classes-list">
+          <!-- Generado por JS -->
+        </div>
+
+        <!-- Deberes y Tareas -->
+        <div class="section-title-row">
+          <span class="section-title">✅ Deberes para este día</span>
+          <button class="btn-small-add" id="btn-open-add-task">+ Añadir</button>
+        </div>
+        <div class="tasks-list" id="tasks-list">
+          <!-- Generado por JS -->
+        </div>
+
+      </section>
+
+      <!-- ====================================================================
+           PESTAÑA 2: ORGANIZADOR DE OUTFITS
+           ==================================================================== -->
+      <section id="outfit-view" class="view-section">
+        
+        <!-- Alerta Inteligente basada en el horario escolar -->
+        <div class="outfit-smart-alert" id="outfit-smart-alert">
+          <!-- Llenado automáticamente por JS leyendo el horario de mañana -->
+        </div>
+
+        <!-- Creador del Outfit -->
+        <div class="outfit-builder-card">
+          <span class="section-title" style="margin-bottom: 12px;">👗 Prepara tu Look de Mañana</span>
+
+          <!-- Cuadro de Foto -->
+          <div class="outfit-photo-box" id="outfit-photo-box">
+            <input type="file" id="outfit-photo-input" accept="image/*" style="display:none;">
+            <img id="outfit-preview-img" style="display:none;" alt="Preview">
+            <div id="photo-placeholder-content" style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+              <span class="photo-placeholder-icon">📸</span>
+              <span class="photo-placeholder-text">Toca para subir foto o selfie de tu ropa</span>
+            </div>
+          </div>
+
+          <!-- Notas de texto -->
+          <textarea class="outfit-notes-input" id="outfit-notes" placeholder="Ej: Sudadera turquesa, joggers blancos y zapatillas para gimnasia..."></textarea>
+
+          <!-- Complementos rápidos -->
+          <div class="accessories-selector">
+            <span class="accessories-label">Complementos que no se te pueden olvidar:</span>
+            <div class="accessories-grid">
+              <span class="acc-chip">👟 Zapatillas</span>
+              <span class="acc-chip">🎒 Mochila</span>
+              <span class="acc-chip">🧥 Chaqueta</span>
+              <span class="acc-chip">🧢 Gorra</span>
+              <span class="acc-chip">🧣 Bufanda</span>
+              <span class="acc-chip">🕶️ Gafas</span>
+              <span class="acc-chip">💍 Joyitas</span>
+            </div>
+          </div>
+
+          <!-- Botón Guardar -->
+          <button class="btn-primary-action" id="btn-save-outfit">
+            <span>✨ Guardar Outfit de Mañana</span>
+          </button>
+        </div>
+
+        <!-- Historial de Outfits Guardados -->
+        <div class="saved-outfits-title">🧥 Mis Looks Recientes</div>
+        <div id="saved-outfits-list">
+          <!-- Generado por JS -->
+        </div>
+
+      </section>
+
+      <!-- ====================================================================
+           PESTAÑA 3: DIARIO DE ÁNIMO (MOOD TRACKER)
+           ==================================================================== -->
+      <section id="diary-view" class="view-section">
+        
+        <!-- Banner Seguro -->
+        <div class="summary-banner" style="background: linear-gradient(135deg, #CCFBF1 0%, #E0F2FE 100%);">
+          <div class="banner-icon">🫧</div>
+          <div>
+            <div class="banner-title">Cápsula Privada y Segura</div>
+            <div class="banner-desc">Escribe lo que sientes. Tus pensamientos están protegidos solo en este móvil.</div>
+          </div>
+        </div>
+
+        <!-- Selector de Emociones -->
+        <div class="section-title-row">
+          <span class="section-title">🌊 Mi energía de hoy</span>
+        </div>
+
+        <div class="mood-carousel">
+          <div class="mood-card active" data-emoji="✨" data-label="Increíble">
+            <span class="mood-emoji">✨</span>
+            <span class="mood-name">Increíble</span>
+          </div>
+          <div class="mood-card" data-emoji="🌊" data-label="Genial">
+            <span class="mood-emoji">🌊</span>
+            <span class="mood-name">Genial</span>
+          </div>
+          <div class="mood-card" data-emoji="☁️" data-label="Tranqui">
+            <span class="mood-emoji">☁️</span>
+            <span class="mood-name">Tranqui</span>
+          </div>
+          <div class="mood-card" data-emoji="🌧️" data-label="Cansada">
+            <span class="mood-emoji">🌧️</span>
+            <span class="mood-name">Cansada</span>
+          </div>
+          <div class="mood-card" data-emoji="⛈️" data-label="Mal día">
+            <span class="mood-emoji">⛈️</span>
+            <span class="mood-name">Mal día</span>
+          </div>
+        </div>
+
+        <!-- Cuadro de Reflexión -->
+        <div class="section-title-row">
+          <span class="section-title">📝 Lo mejor de mi jornada</span>
+        </div>
+
+        <div class="journal-card">
+          <textarea class="journal-textarea" id="journal-input" maxlength="250" placeholder="Cuéntale a tu yo del futuro qué fue lo más guay, interesante o gracioso que pasó hoy en el cole o con tus amigas..."></textarea>
+          <div class="char-counter" id="journal-char-count">0 / 250</div>
+        </div>
+
+        <button class="btn-primary-action" id="btn-save-diary" style="margin-bottom: 25px;">
+          <span>🔒 Guardar en la Cápsula del Tiempo</span>
+        </button>
+
+        <!-- Historial / Cápsula del tiempo -->
+        <div class="section-title-row">
+          <span class="section-title">⏳ Mis Recuerdos Guardados</span>
+        </div>
+        <div class="history-timeline" id="history-timeline">
+          <!-- Generado dinámicamente por JS -->
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Barra de Navegación Inferior (Bottom Bar) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="schedule">
+        <div class="nav-icon-box">📅</div>
+        <span class="nav-label">Horario</span>
+      </button>
+      <button class="nav-item" data-view="outfit">
+        <div class="nav-icon-box">👗</div>
+        <span class="nav-label">Outfits</span>
+      </button>
+      <button class="nav-item" data-view="diary">
+        <div class="nav-icon-box">💭</div>
+        <span class="nav-label">Diario</span>
+      </button>
+    </nav>
+
+    <!-- Modal 1: Añadir Tarea (Eligiendo el Día para el que se la mandan) -->
+    <div class="modal-overlay" id="add-task-modal">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <span class="modal-title">Añadir Deberes ✏️</span>
+          <button class="btn-close-modal" id="btn-close-modal">✕</button>
+        </div>
+        
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; display:block;">
+          ¿Para qué día son los deberes?
+        </label>
+        <select id="task-input-day" class="modal-input" style="font-weight:700; color:var(--primary-turquoise);">
+          <!-- Opciones Lunes a Domingo por JS -->
+        </select>
+
+        <input type="text" id="task-input-text" class="modal-input" placeholder="¿Qué tienes que hacer? (ej. Ejercicios pág 34)">
+        <input type="text" id="task-input-subject" class="modal-input" placeholder="Asignatura (ej. Matemáticas, Lengua, Inglés...)">
+
+        <button class="btn-primary-action" id="btn-confirm-add-task">
+          <span>Guardar Tarea</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal 2: Modificar Horario Escolar (Para cambio de curso) -->
+    <div class="modal-overlay" id="edit-schedule-modal">
+      <div class="modal-sheet" style="max-height:85vh; overflow-y:auto;">
+        <div class="modal-header">
+          <span class="modal-title">⚙️ Modificar Horario de Curso</span>
+          <button class="btn-close-modal" id="btn-close-edit-schedule">✕</button>
+        </div>
+
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; display:block;">
+          Selecciona el día a modificar:
+        </label>
+        <select id="schedule-edit-day-select" class="modal-input" style="font-weight:700;">
+          <!-- Generado por JS -->
+        </select>
+
+        <!-- Lista de Clases Existentes en ese día -->
+        <div style="font-size:13px; font-weight:800; margin: 10px 0 6px;">Clases programadas:</div>
+        <div id="schedule-editor-classes-list" style="margin-bottom: 16px;">
+          <!-- Listado editable generado por JS -->
+        </div>
+
+        <!-- Formulario para Añadir Asignatura -->
+        <div style="background:#F0FDFA; border:1px solid #99F6E4; padding:14px; border-radius:16px; margin-bottom:16px;">
+          <div style="font-size:13px; font-weight:800; color:var(--primary-turquoise); margin-bottom:8px;">
+            + Añadir nueva asignatura a este día
+          </div>
+          <input type="text" id="new-class-name" class="modal-input" style="background:#fff;" placeholder="Nombre (ej. Física y Química)">
+          <input type="text" id="new-class-time" class="modal-input" style="background:#fff;" placeholder="Horario (ej. 08:15 - 09:10)">
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="new-class-icon" class="modal-input" style="background:#fff; flex:1;" placeholder="Emoji (ej. 🧪)">
+            <input type="text" id="new-class-tag" class="modal-input" style="background:#fff; flex:2;" placeholder="Etiqueta (ej. Ciencias)">
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+            <input type="checkbox" id="new-class-is-sport" style="width:18px; height:18px; accent-color:var(--primary-turquoise);">
+            <label for="new-class-is-sport" style="font-size:12px; font-weight:700; color:var(--text-main);">
+              Es Educación Física / Deporte 🏃‍♀️
+            </label>
+          </div>
+          <button class="btn-primary-action" id="btn-add-class-to-schedule" style="height:44px;">
+            <span>Añadir Asignatura al Horario</span>
+          </button>
+        </div>
+
+        <!-- Botón para restablecer al horario del cuaderno -->
+        <button id="btn-reset-official-schedule" style="width:100%; background:transparent; border:1px solid #CBD5E1; color:var(--text-muted); font-size:12px; font-weight:700; padding:10px; border-radius:14px; cursor:pointer;">
+          Restablecer al horario del cuaderno
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // Registro del Service Worker para funcionamiento Offline y PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('current-clock').textContent = `${hours}:${minutes}`;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>
